@@ -1,0 +1,31 @@
+---
+title: "Lab 1"
+author: "KM"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, echo = TRUE}
+sumdiag <- function(A){
+  s = c()
+  for (row in 1:nrow(A))
+    s = c(s, sum(A[row, ])+sum(A[, row]))-A[row, row]
+  x = diag(s, 3)
+}
+
+A <- matrix(c(0, 1, 2, 3, 0,4, 5, 6, 0), nrow = 3, ncol = 3)
+print(sumdiag(A))
+```
+
+```{r}
+library(dplyr)
+
+df = read.csv2('Wyksz_Zarobki.csv')
+print(df)
+df <- df %>% filter(row_number() <= n()-1)
+print(df)
+#mean(zakupy[Wydatek])
+```
