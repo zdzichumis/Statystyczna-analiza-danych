@@ -1,6 +1,6 @@
 ---
 title: "Lab 1"
-author: "KM"
+author: ""
 output: html_document
 ---
 
@@ -10,29 +10,49 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r, echo = TRUE}
 sumdiag <- function(A){
-  s = c()
-  for (row in 1:nrow(A))
-    s = c(s, sum(A[row, ])+sum(A[, row]))-A[row, row]
-  x = diag(s, 3)
+  s <- c()
+  for (row in 1:min(dim(A)))
+    s <- c(s, sum(A[row, ])+sum(A[, row]))-A[row, row]
+  diag(s)
 }
 
-A <- matrix(c(0, 1, 2, 3, 0,4, 5, 6, 0), nrow = 3, ncol = 3)
+A <- matrix(c(0, 1, 2, 3, 0,4, 5, 6, 0), nrow = 3)
+A <- matrix(1:9, nrow = 3, ncol = 3)
 print(sumdiag(A))
 ```
 
 ```{r}
 skc <- function(n){
-digits <- as.numeric(unlist(strsplit(as.character(n), "")))
-x = sum(digits**2)
+  digits <- as.numeric(unlist(strsplit(as.character(n), "")))
+  sum(digits**2)
 }
 
 n <- 12
 print(skc(n))
+for (N in 1:99){
+  while (N!=1 & N!=4)
+    N <- skc(N)
+  print(N)
+}
 ```
 
 ```{r}
-df = read.csv('zakupy2.csv', header=TRUE)
-print(df)
-print(df)
-#mean(zakupy[Wydatek])
+zakupy = read.csv2('zakupy2.csv', header=FALSE)
+any(is.na(zakupy))
+print(zakupy)
+mean(zakupy$Wydatek)
+sd(zakupy$Wydatek)
+#Mężczyzna <=65 lat
+#Kobieta <=68 lat
+library(dplyr)
+
+wiek_produkcyjny <- zakupy%>% filter((PLEC == 'M' & WIEK <=65)|(PLEC == 'K' & WIEK <=68))
+wiek_emerytalny <- zakupy %>% anti_join(wiek_produkcyjny, by = c('WIEK', 'PLEC'))
+```
+
+```{r}
+library(readxl)
+df = read_excel('Wyksz_zarobki_xlsx')
+srednie_wartosci_zarobkow <- c(0, seq(500, 500, by=1000), 15000)
+mean(srednie_wartosci_zarobkow[df$Zarobki])
 ```
