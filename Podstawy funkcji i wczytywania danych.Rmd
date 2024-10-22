@@ -1,6 +1,6 @@
 ---
 title: "Lab 1"
-author: ""
+author: "44"
 output: html_document
 ---
 
@@ -27,32 +27,34 @@ skc <- function(n){
   sum(digits**2)
 }
 
-n <- 12
-print(skc(n))
 for (N in 1:99){
   while (N!=1 & N!=4)
     N <- skc(N)
-  print(N)
 }
+print(N)
 ```
 
 ```{r}
-zakupy = read.csv2('zakupy2.csv', header=FALSE)
-any(is.na(zakupy))
-print(zakupy)
-mean(zakupy$Wydatek)
-sd(zakupy$Wydatek)
-#Mężczyzna <=65 lat
-#Kobieta <=68 lat
 library(dplyr)
-
-wiek_produkcyjny <- zakupy%>% filter((PLEC == 'M' & WIEK <=65)|(PLEC == 'K' & WIEK <=68))
-wiek_emerytalny <- zakupy %>% anti_join(wiek_produkcyjny, by = c('WIEK', 'PLEC'))
+zakupy = read.csv2('zakupy2.csv', header=TRUE)
+any(is.na(zakupy))
+head(zakupy)
+colnames(zakupy)
+zakupy_mean <- mean(zakupy$Wydatek)
+zakupy_mean
+zakupy_sd <- sd(zakupy$Wydatek)
+zakupy_sd
+wiek_produkcyjny <- filter(zakupy, (PLEC == 'M' & WIEK <=65)|(PLEC == 'K' & WIEK <=68))
+wiek_produkcyjny
+wiek_emerytalny <- filter(zakupy, (PLEC == 'M' & WIEK >65)|(PLEC == 'K' & WIEK >68))
+wiek_emerytalny
 ```
 
 ```{r}
 library(readxl)
-df = read_excel('Wyksz_zarobki_xlsx')
-srednie_wartosci_zarobkow <- c(0, seq(500, 500, by=1000), 15000)
-mean(srednie_wartosci_zarobkow[df$Zarobki])
+df <- read_excel('Wyksz_Zarobki.xls')
+srednie_wartosci_zarobkow <- c(0, seq(500, 10000, by=1000), 15000)
+srednie_wartosci_zarobkow
+df_mean <- mean(srednie_wartosci_zarobkow[df$Zarobki])
+df_mean
 ```
