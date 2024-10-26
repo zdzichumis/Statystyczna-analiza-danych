@@ -1,0 +1,20 @@
+---
+title: "lab 2"
+author: "Adam Michalski"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(DescTools)
+wzrost <- read.csv2('wzrost.csv', header=FALSE)
+colnames(wzrost) <- c('dane')
+quantile(wzrost$dane, probs =c(0.25, 0.5, 0.75))
+mean(wzrost$dane)
+t.test(wzrost$dane, conf.level = 0.9)
+var(wzrost$dane)
+VarCI(wzrost$dane, method = "classic", conf.level = 0.9, sides = "two.sided")
+```
