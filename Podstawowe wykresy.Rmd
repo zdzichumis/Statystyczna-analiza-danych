@@ -1,0 +1,76 @@
+---
+title: "Lab 21"
+author: "Adam Michalski"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+wzrost <- read.csv2("Wzrost.csv", header=FALSE)
+colnames(wzrost) <- c("dane")
+
+plot(density(wzrost$dane, width = 1, kernel = "gaussian"), main = "Zestawienie estymowanych gęstości z różną szerekością pasma", xlab = "x", ylab = "gęstość", col="red")
+lines(density(wzrost$dane, kernel = "gaussian"), col="green")
+lines(density(wzrost$dane, width = 10, kernel = "gaussian"), col="blue")
+lines(density(wzrost$dane, width = 100, kernel = "gaussian"), col="black")
+legend(x=192, y=0.065, legend = c("width=1", "width=3,488(default)", "width=10", "width=100"), fill = c("red", "green", "blue", "black"))
+```
+Z wykresów zauważyć można iż wraz ze wzrostem szerokości pasma rośnie stopień dopasowania estymatora gęstości do podanego jądra. Przy niskiej wartości tego parametru gęstość zaś ściśle dopasowuje się do danych, a przy wysokiej wartości "width" estymator zaczyna przypominać wybraną funkcję jądrową przy minimalnym uwzględnieniu podanych danych.
+
+```{r}
+plot(density(wzrost$dane, kernel = "gaussian"), main = "Wykresy estymowanej gęstości jądrem Gaussowskim", xlab = "x", ylab = "gęstość", col="orange")
+lines(density(wzrost$dane, width = 100, kernel = "gaussian"), col="darkorange4")
+legend("topright", legend = c("width=default", "width=100"), fill = c("orange", "darkorange4"))
+plot(density(wzrost$dane, kernel = "epanechnikov"), main = "Wykresy estymowanej gęstości jądrem Epanechnikova", xlab = "x", ylab = "gęstość", col="cyan")
+lines(density(wzrost$dane, width = 100, kernel = "epanechnikov"), col="cyan4")
+legend("topright", legend = c("width=default", "width=100"), fill = c("cyan", "cyan4"))
+plot(density(wzrost$dane, kernel = "rectangular"), main = "Wykresy estymowanej gęstości jądrem prostokątnym", xlab = "x", ylab = "gęstość", col="red")
+lines(density(wzrost$dane, width = 100, kernel = "rectangular"), col="red4")
+legend("topright", legend = c("width=default", "width=100"), fill = c("red", "red4"))
+plot(density(wzrost$dane, kernel = "cosine"), main = "Wykresy estymowanej gęstości jądrem cosinusowym", xlab = "x", ylab = "gęstość", col="green")
+lines(density(wzrost$dane, width = 100, kernel = "cosine"), col="green4")
+legend("topright", legend = c("width=default", "width=100"), fill = c("green", "green4"))
+```
+Na podstawie wykresów, można wywnioskować, że wybór jądra odpowiada za część doboru estymatora gęstości niezależną od podanych danych. Wykresy dla dużych szeregości pasma rzeczywiście przybliżają podaną funkcję jądrową, a przy mniejszych wartościach stanowią mieszankę funkcji gęstości.
+
+```{r}
+mu = mean(wzrost$dane); sigma = sd(wzrost$dane)
+x = seq(120, 230, length = 500)
+hist(wzrost$dane, 15, prob = T, main = "Zestawienie histogramy, estymowanej gęstości i rozkładu normalnego", xlab = "x", ylab = "gęstość", col="magenta")
+lines(density(wzrost$dane, kernel = "epanechnikov"), lwd = 2, col = "cyan")
+lines(x, dnorm(x, mu, sigma), lwd = 2, col = "gold")
+legend("topright", legend = c("histogram", "estymowana gęstość", "rozkład normalny"), fill = c("magenta", "cyan", "gold"))
+```
+
+n-1 klas ma być więc podzel przez n-1
+```{r}
+k <- 20
+podzial <- seq(min(wzrost$dane), max(wzrost$dane), length.out = k)
+podzial[1] <- 2*podzial[1]-podzial[2]
+n <- length(podzial)
+podzial[n] <- 2*podzial[n]-podzial[n-1]
+podzial
+hist(wzrost$dane, podzial, main = "Histogram o minimum i maximum w środku podziałów", xlab = "x", ylab = "gęstość", col = "purple")
+points(x = min(wzrost$dane), y = 0, lwd = 10, col = "lightgreen")
+points(x = max(wzrost$dane), y = 0, lwd = 10, col = "darkgreen")
+legend("topright", legend = c("min", "max"), fill = c("lightgreen", "darkgreen"))
+```
+
+```{r}
+k <- 10
+podzial <- qantile(0:k/k, wzrost$dane)
+podzial[1] <- min(wzrost)-1
+podzial[length(podzial)] <- max(wzrost$dane)+1
+podzial
+hist(wzrost$dane, podzial, main = "Histogram o równej liczbie elementów w podziałach", xlab = "x", ylab = "gęstość", col="lightblue")
+```
+
+```{r}
+energia <- read.csv2("RDN_2010.csv", header = TRUE, fileEncoding = "Windows-1250")
+energia$Data <- as.Date(energia$Data, format="%Y-%m-%d")
+plot(energia$Przesył8.22, energia$Dzień.Tyg)
+```
