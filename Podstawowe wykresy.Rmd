@@ -72,5 +72,5 @@ hist(wzrost$dane, podzial, main = "Histogram o równej liczbie elementów w podz
 ```{r}
 energia <- read.csv2("RDN_2010.csv", header = TRUE, fileEncoding = "Windows-1250")
 energia$Data <- as.Date(energia$Data, format="%Y-%m-%d")
-plot(energia$Przesył8.22, energia$Dzień.Tyg)
+boxplot(energia$Przesył8.22, energia$Dzień.Tyg)
 ```

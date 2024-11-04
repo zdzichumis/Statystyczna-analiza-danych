@@ -1,0 +1,24 @@
+---
+title: "lab n+1/2"
+author: "Adam Michalski"
+date: '2024-11-04'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#wzrost <- read.csv2("Wzrost.csv", header=FALSE)
+wzrost <- 
+wzrost$dane <- 10
+colnames <- c("dane")
+k <- 20
+dlugosc_podzialu <- (min(wzrost$dane) - max(wzrost$dane))/(k-1)
+podzial <- seq(min(wzrost$dane)-dlugosc_podzialu/2, max(wzrost$dane)+dlugosc_podzialu/2, length.out = k)
+podzial
+
+szereg <- table(podzial)
+
+```
