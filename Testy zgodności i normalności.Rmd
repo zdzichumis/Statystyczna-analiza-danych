@@ -71,24 +71,30 @@ lilliefors_basic
 lilliefors_noise <- LillieTest(data_with_noise)
 lilliefors_noise
 ```
-Zaburzenie danych losową zmienną jednostajną zwiększa p-value w przypadku każdego z tych testów na normalność, lecz ma kluczowe znaczenie dla testu Kołomogorowa-Smirnowa.
+Zaburzenie danych losową zmienną jednostajną zwiększa p-value w przypadku każdego z tych testów na normalność, lecz ma kluczowe znaczenie dla testu Kołomogorowa-Smirnowa, którego statystyka mierząca odległość między dystrybuantą teoretyczną, a empiryczną maleje przy pozbyciu się zaokrągleń do liczb całkowitych w badanych danych.
 
 ```{r, warning=FALSE}
 library(readxl)
 
 stopy <- read_excel("Stopa.xls")
 names(stopy) <- c("lewa stopa", "prawa stopa")
-dane_1 <- lapply(stopy[6:20, ], as.integer)
+dane_1 <- lapply(stopy[6:25, ], as.numeric)
 dane_1
-dane_2 <- lapply(stopy[31:50, ], as.integer)
+dane_2 <- lapply(stopy[31:50, ], as.numeric)
 dane_2
-t.test(dane_1$`lewa stopa`, dane_1$`prawa stopa`, alternative = "greater", mu = 0)
-t.test(dane_2$`lewa stopa`, dane_2$`prawa stopa`, alternative = "greater", mu = 0)
 
 chisq.test(dane_1$`lewa stopa`, dane_1$`prawa stopa`)
 chisq.test(dane_2$`lewa stopa`, dane_2$`prawa stopa`)
 ```
-Pierwszy profesor poczynił założenie o braku związku pomiędzy  pomiarami długości lewej i prawej stopy tej samem osoby rozważając pomiary stóp różnych osób . Lepszym modelem wydaje się być model jednak pomysł drugiego profesora, rozważający pomiary obu stóp wybranych losowo osób, gdyż to podejście uwzględnia związaną z badanym problemem silną zależność pomiędzy pomiarami lewej, a prawej stopy tej samej osoby uzasadnionej przez przeprowadzony test $\chi^2$ niezależności, co czyni jego sposób zbierania danych bardziej realistycznym. Test Welcha dla obu danych nie wykazują jednak istotnej dodatniej różnicy między długością prawych i lewych stóp.
+W pierwszym modelu doświadczenia możemy przeprowadzić test równości średniej dwóch niezależnych próbek za pomocą t-testu:
+```{r}
+t.test(dane_1$`lewa stopa`, dane_1$`prawa stopa`, alternative = "greater", mu = 0)
+```
+W przypadku drugiego modelu, skoro pomiary z odpowiednich próbek dobrane są w pary możemy skorzystać z t-testu badającego hipotezę o zerowej różnicy par pomiarów z odpowiednich danych.
+```{r}
+t.test(dane_2$`lewa stopa`, dane_2$`prawa stopa`, alternative = "greater", mu = 0, paired = TRUE)
+```
+Pierwszy profesor poczynił założenie o braku związku pomiędzy  pomiarami długości lewej i prawej stopy tej samem osoby rozważając pomiary stóp różnych osób . Lepszym modelem wydaje się być model jednak pomysł drugiego profesora, rozważający pomiary obu stóp wybranych losowo osób, gdyż to podejście uwzględnia związaną z badanym problemem silną zależność pomiędzy pomiarami lewej, a prawej stopy tej samej osoby uzasadnionej przez przeprowadzony test $\chi^2$ niezależności. Uwzględnienie zależności pomiędzy pomiarami obu stóp u tych samych osób pozwala też zmniejszyć wariancję pomiarów. Przeprowadzone testy dla obu danych nie wykazują jednak istotnej dodatniej różnicy między długością prawych i lewych stóp.
 
 ```{r}
 ks.test(dane_1$`lewa stopa`, dane_1$`prawa stopa`)
