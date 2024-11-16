@@ -1,0 +1,40 @@
+---
+title: "Anova"
+author: "Adam Michalski"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r iris, warning=FALSE}
+library(datasets)
+library(dplyr, warn = FALSE)
+data(iris)
+attach(iris)
+sep_len <-  Sepal.Length
+sep_wid <- Sepal.Width
+spec <- Species
+detach(iris)
+groups <- group_by(iris, Species)
+summarise(groups, group_mean = mean(Sepal.Length))
+summarise(groups, group_var =var(Sepal.Length))
+summarise(groups, group_mean =mean(Sepal.Width))
+summarise(groups, group_var =var(Sepal.Width))
+
+for (column in c('setosa', 'versicolor', 'virginica')){
+  print(shapiro.test(sep_len[spec == column]))
+  print(shapiro.test(sep_len[spec == column]))
+}
+bartlett.test(sep_len, spec)
+bartlett.test(sep_wid, spec)
+anova(aov(sep_len~spec))
+anova(aov(sep_wid~spec))
+```
+Na podstawie wyników testu można przyjąć, że istnieje istotna statystycznie różnica w średnich wymiarach kwiatków różnych gatunków. Założenia anovy są jednak spełnione jedynie w przypadku.
+
+```{r}
+
+```
