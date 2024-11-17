@@ -25,15 +25,40 @@ summarise(groups, group_mean =mean(Sepal.Width))
 summarise(groups, group_var =var(Sepal.Width))
 
 for (column in c('setosa', 'versicolor', 'virginica')){
+  cat("\nGrupa:", column, "\n")
   print(shapiro.test(sep_len[spec == column]))
-  print(shapiro.test(sep_len[spec == column]))
+  print(shapiro.test(sep_wid[spec == column]))
 }
-bartlett.test(sep_len, spec)
-bartlett.test(sep_wid, spec)
-anova(aov(sep_len~spec))
-anova(aov(sep_wid~spec))
+bartlett.test(sep_len ~ spec)
+bartlett.test(sep_wid ~ spec)
+anova(aov(sep_len ~ spec))
+anova(aov(sep_wid ~ spec))
 ```
-Na podstawie wyników testu można przyjąć, że istnieje istotna statystycznie różnica w średnich wymiarach kwiatków różnych gatunków. Założenia anovy są jednak spełnione jedynie w przypadku.
+Na podstawie wyników testu można przyjąć, że istnieje istotna statystycznie różnica w średnich wymiarach kwiatków różnych gatunków. Założenia anovy są jednak spełnione jedynie w przypadku szerekości kielichów kwatów.Wobec tego do zbadania długości kielichów możnaby było zastosować podejście Monte Carlo do dokładniejszej weryfikacji tej hipotezy.
+
+```{r height}
+height <- read.csv2("Wzrost_zal.csv", header=TRUE, fileEncoding = "Windows-1250")
+height
+attach(height)
+eye_col <- kolor.oczu 
+hair_col <- kolor.włosów
+val <- wzrost..cm.
+detach(height)
+groups <- interaction(eye_col, hair_col, drop = TRUE)
+boxplot(val~groups, col = terrain.colors(4))
+normality_results <- tapply(val, groups, shapiro.test)
+for (column in names(normality_results)) {
+  cat("\nGroup:", column, "\n")
+  print(normality_results[[column]])
+}
+bartlett.test(val ~ groups)
+anova(aov(val ~ groups))
+op=par(mfrow=c(2,1))
+par(mar=c(4.2, 4, 0.8, 1.1))
+interaction.plot(eye_col, hair_col, val, xlab="")
+interaction.plot(eye_col, hair_col, xlab="")
+```
+Na podstawie powyższych testów nie mamy podstaw do odrzucenia założenia dotyczącego równości wariancji w poszczególnych grupach. Jedynie w grupie osób o niebieskim kolorze oczu oraz jasnych włosach założenie normalności nie jest spełnione.
 
 ```{r}
 
