@@ -1,0 +1,161 @@
+---
+title: "Regresja liniowa 2"
+author: "Adam Michalski"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, raty, warning = FALSE}
+library(readr)
+purchases <- read_csv2('Raty.csv', col_types = cols(
+  Raty = col_factor()))
+str(purchases)
+reg <- glm(Raty ~ Wiek, data = purchases, family = binomial)
+summary(reg)
+```
+Na podstawie p-wartości 0.182 nie mamy podstaw do odrzucenia hipotezy o zerowaniu się współczynnika zależności decyzji o ratach w zależności od wieku, więc nie mamy podstaw do rozważania istotnej zależności między tymi dwoma zmiennymi.
+
+```{r, raty_wykres}
+plot(purchases$Wiek, as.numeric(purchases$Raty)-1,
+     col = ifelse(purchases$Raty == "T", "blue", "red"),
+     pch = 16,
+     xlab = "Wiek",
+     ylab = "Raty",
+     main = "Wykres danych wraz z regresją logistyczną")
+legend("bottomright", 
+       legend = c("Dane z ratami", "Dane bez rat", "Regresja logistyczna"),
+       col = c("blue", "red", "green"),
+       pch = c(16, 16, NA),
+       lty = c(NA, NA, 1), 
+       lwd = c(NA, NA, 2), 
+       bty = "n")
+wiek_range <- seq(min(purchases$Wiek), max(purchases$Wiek), length.out = 300)
+prediction_data <- data.frame(Wiek = wiek_range)
+predicted_probs <- predict(reg, newdata = prediction_data, type = "response")
+
+lines(wiek_range, predicted_probs, lwd = 2, col = "green")
+log_odds <- predict(reg, type = "link")
+
+purchases$log_odds <- predict(reg, type = "link")
+linear_model <- lm(log_odds ~ Wiek, data = purchases)
+plot(linear_model)
+shapiro.test(linear_model$residuals)
+```
+Z pierwszego wykresu widać iż krzywa logistyczna przypomina prostą, co przemawia za brakiem silnej zależności między decyzją o zakupie na raty a wiekiem. Niestety wykresy diagnostyczne dla modelu liniowego log odds wskazują na silne odstawanie pewnych punktów danych oraz test shapiro wilka odrzuca hipotezę o normalności reszt, więc model nie spełnia założeń teoretycznych.
+
+```{r, przybliżenie trójmianem kwadratowym}
+regression_test <- read_csv2('test_regresji.csv')
+str(regression_test)
+reg_squred <- lm(y ~ x + I(x^2), data = regression_test)
+summary(reg_squred)
+```
+
+```{r, funkcja kwadratowa}
+plot(regression_test$x, regression_test$y,
+     pch = 16,
+     xlab = "x",
+     ylab = "y",
+     main = "Wykres danych wraz z estymacją funkcją kwadratową",
+     col = "red")
+
+legend("bottomright", 
+       legend = c("Dane", "Predykcja"),
+       col = c("red", "green"),
+       pch = c(16, NA),
+       lty = c(NA, 1), 
+       lwd = c(NA, 2), 
+       bty = "n")
+
+x_range <- seq(min(regression_test$x), max(regression_test$x), length.out = 300)
+prediction_data <- data.frame(x = x_range, `I(x^2)` = x_range^2)
+
+lines(x_range, predict(reg_squred, newdata = prediction_data), lwd = 2, col = "green")
+```
+Wykres funkcji kwadratowej udało się utworzyć poprzez model liniowy o zmiennej x oraz x^2.
+
+```{r, wykresy loess deg2}
+loess_default <- loess(y ~ x, data = regression_test)
+summary(loess_default)
+
+plot(regression_test$x, regression_test$y,
+     pch = 16,
+     xlab = "x",
+     ylab = "y",
+     main = "Wykres danych wraz z estymacją funkcją lokalnie kwadratową",
+     col = "red")
+
+legend("bottomright", 
+       legend = c("Dane", "default(span = 0.75, deg=2)", "span=0.05, deg=2", "span=10, deg=2"),
+       col = c("red", "green", "lightgreen", "darkgreen"),
+       pch = c(16, NA, NA, NA),
+       lty = c(NA, 1, 1, 1), 
+       lwd = c(NA, 2, 2, 2), 
+       bty = "n")
+
+x_range = data.frame(x = seq(min(regression_test$x), max(regression_test$x), length = 300))
+lines(x_range$x, predict(loess_default, x_range), lwd = 2, col = "green")
+lines(x_range$x, predict(loess(y ~ x, span = 0.05, degree = 2, data = regression_test), x_range), lwd = 2, col = "lightgreen")
+lines(x_range$x, predict(loess(y ~ x, span = 10, degree = 2, data = regression_test), x_range), lwd = 2, col = "darkgreen")
+```
+Z wykresu możemy odczytać iż mała wartość parametru span przyczynia się do silnego dopasowania do danych, a duża wartość parametru span uwzględnia w modelu tylko jeden wielomian podanego stopnia.
+
+```{r, wykresy loess deg1}
+plot(regression_test$x, regression_test$y,
+     pch = 16,
+     xlab = "x",
+     ylab = "y",
+     main = "Wykres danych wraz z estymacją funkcją lokalnie kwadratową",
+     col = "red")
+
+legend("bottomright", 
+       legend = c("Dane", "default(span = 0.75, deg=2)", "span=0.1, deg=1", "span=0.75, deg=1", "span=10, deg =1"),
+       col = c("red", "green", "lightblue", "blue", "darkblue"),
+       pch = c(16, NA, NA, NA, NA),
+       lty = c(NA, 1, 1, 1, 1), 
+       lwd = c(NA, 2, 2, 2, 2), 
+       bty = "n")
+x_range = data.frame(x = seq(min(regression_test$x), max(regression_test$x), length = 300))
+lines(x_range$x, predict(loess_default, x_range), lwd = 2, col = "green")
+lines(x_range$x, predict(loess(y ~ x, span = 0.1, degree = 1, data = regression_test), x_range), lwd = 2, col = "lightblue")
+lines(x_range$x, predict(loess(y ~ x, span = 0.75, degree = 1, data = regression_test), x_range), lwd = 2, col = "blue")
+lines(x_range$x, predict(loess(y ~ x, span = 100, degree = 1, data = regression_test), x_range), lwd = 2, col = "darkblue")
+```
+
+```{r, wykresy gladko skejane}
+smooth_default <- smooth.spline(regression_test$x, regression_test$y)
+str(smooth_default)
+
+plot(regression_test$x, regression_test$y,
+     pch = 16,
+     xlab = "x",
+     ylab = "y",
+     main = "Wykres danych wraz z estymacją funkcją lokalnie kwadratową",
+     col = "red")
+
+legend("bottomright", 
+       legend = c("Dane", "default(spar = 0.538)", "spar=0.1", "spar=10"),
+       col = c("red", "green", "lightgreen", "darkgreen"),
+       pch = c(16, NA, NA, NA),
+       lty = c(NA, 1, 1, 1), 
+       lwd = c(NA, 2, 2, 2), 
+       bty = "n")
+
+predict(smooth.spline(regression_test$x, regression_test$y, spar = 10), x_range)$y
+
+x_range = data.frame(x = seq(min(regression_test$x), max(regression_test$x), length = 300))
+lines(x_range$x, predict(smooth_default, x_range$x)$y, lwd = 2, col = "green")
+lines(x_range$x, predict(smooth.spline(regression_test$x, regression_test$y, spar = 0.01), x_range$x)$y, lwd = 2, col = "lightgreen")
+lines(x_range$x, predict(smooth.spline(regression_test$x, regression_test$y, spar = 10), x_range$x)$y, lwd = 2, col = "darkgreen")
+```
+Z wykresów zauważyć można iż gdy parametr spar jest mały, funkcja gładko sklejana dopasowuje się do punktów z danych, a przy dużych wartościach parametru funkcja gładko sklejana nie bierze zbyt silnie danych pod uwagę zwracając funkcję gładką daleką od danych.
+
+
+
+
+
+
+
