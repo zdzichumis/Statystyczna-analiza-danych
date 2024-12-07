@@ -1,5 +1,5 @@
 ---
-title: "lab n+1/2"
+title: "Testy zgodności"
 author: "Adam Michalski"
 date: '2024-11-04'
 output: html_document
