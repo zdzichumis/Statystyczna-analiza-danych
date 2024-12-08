@@ -8,6 +8,189 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r analiza korespondencji}
+```{r wczytanie danych o poetach}
+suppressWarnings(library(readr))
+poeci <- read_csv2("poeci.csv", col_names = FALSE, locale = locale(encoding = "Windows-1250"), col_types = cols(
+  X1 = col_factor(), X2 = col_factor())
+  )
+colnames(poeci) <- c("Miasto", "Poeta")
+summary(poeci)
+dane <- table(poeci)
+str(dane)
+```
+
+Skłonność do grupowania danych zilustrujemy w oparciu o mapy ciepła:
+
+```{r mapy ciepła dla danych o poetach}
+heatmap(dane, scale = "none", cexRow = 0.9, cexCol = 0.9)
+
+
+heatmap(dane, scale="row", cexRow = 0.9, cexCol = 0.9)
+
+
+heatmap(dane, scale="col", cexRow = 0.9, cexCol = 0.9)
 
 ```
+
+Na początek stworzymy tabelę korespondencji:
+
+```{r}
+n <- sum(dane)
+P <- dane/n
+str(P)
+```
+
+Następnie obliczymy częstości brzegowe zwane w analizie korespondencji masami wierszy i kolumn:
+
+```{r}
+masa_w <- rowSums(P)
+masa_w
+masa_k <- colSums(P)
+masa_k
+```
+
+Wyznaczamy dalej teoretyczne częstości łączne, których oczekiwalibyśmy w przypadku całkowitej niezależności:
+
+```{r}
+teor <- outer(masa_w, masa_k, "*")
+str(teor)
+```
+
+Na koniec wyznaczymy standaryzowane reszty pearsonowskie niosące informacje o odchyłkach od niezależności danych:
+
+```{r}
+E <- (P-teor)/teor^(1/2)
+str(E)
+```
+
+Zauważmy, że otrzymujemy poniżej ręcznie wyznaczoną wartość będącą wynikiem testu niezależności $\chi^2$
+
+```{r chi2 test dla danych o poetach}
+n*sum(E*E)
+test <- chisq.test(dane)
+test
+```
+
+Mapy ciepła odchyłek od niezależności wyglądają następująco:
+
+```{r mapy ciepla dla odchylek danych o poetach}
+heatmap(E*E, scale = "none", cexRow = 0.9, cexCol = 0.9)
+
+
+heatmap(E*E, scale="row", cexRow = 0.9, cexCol = 0.9)
+
+
+heatmap(E*E, scale="col", cexRow = 0.9, cexCol = 0.9)
+```
+
+Skoro odrzuciliśmy hipotezę o niezależności w następnej kolejności spróbujemy ustalić postać zależności między miastem studiowania, a wyborem ulubionego poety.
+
+```{r}
+S <- svd(E)
+str(S)
+```
+
+Korzystając z powyższej dekompozycji macierzy $E\cdot E^T$ standaryzując współrzędne wierszy i kolumn(poprzez dzielenie ich przez pierwiastki z odpowiednich częstości brzegowych) otrzymujemy następujący wykres zwany mapą percepcji:
+
+```{r wykres wlasny danych o poetach}
+X <- diag(1/sqrt(masa_w)) %*% S$u
+Y <- diag(1/sqrt(masa_k)) %*% S$v
+plot(rbind(X[,1:2], Y[,1:2]), col = "white", xlab = "", ylab = "", main = "", xlim = c(-1.8, 1.6), ylim = c(-1, 2.1))
+text(X[,1:2], levels(poeci$Miasto), col = "blue")
+text(Y[,1:2], levels(poeci$Poeta), col = "red")
+```
+
+Na podstawie własnego wykresu widać, że Tadeusz Różewicz jest najpopularniejszy wśród studentów Warszawy, pośród studentów Wrocławia i Krakowa dominują Wisława Szymborska i Czesław Miłosz, w Gdańsku cieszy się popularnością Zbigniew Herbert, a w Łodzi opinie o ulubionym poecie zdają się być podzielone. Analogiczny wykres tworzy pakiet ca:
+
+```{r wykres ca danych o poetach}
+library(ca)
+plot(ca(dane), mass=T)
+```
+
+```{r wczytywanie danych o hobby}
+library(readr)
+hobbies <- read_csv2("hobbies.csv", 
+                     locale = locale(encoding = "Windows-1250"), col_types = cols_only(Reading = col_factor(), 
+                                                                                       Sex = col_factor(), 
+                                                                                       Age = col_factor(), 
+                                                                                       Profession = col_factor()))
+levels(hobbies$Reading) <- c("Yes", "No")
+colnames(hobbies)[colnames(hobbies) == "Sex"] <- "Gender"
+summary(hobbies)
+colSums(is.na(hobbies))
+levels(hobbies$Profession) <- c(levels(hobbies$Profession), "Other")
+#Kod do zastępowania braków we wszystkich kolumnach:
+#hobbies[] <- lapply(hobbies, function(x) replace(x, is.na(x), "Other"))
+hobbies$Profession <- replace(hobbies$Profession, is.na(hobbies$Profession), "Other")
+colSums(is.na(hobbies))
+hobbies_reading <- subset(hobbies, Reading == "Yes", select = -c(Reading))
+dane_reading <- table(hobbies_reading)
+str(dane_reading)
+```
+
+```{r wykres 3d danych o hobby}
+library(ca)
+suppressWarnings(plot(mjca(dane_reading), mass = c(T, T)))
+```
+
+Z wykresu rzeczywiście niewiele widać, więc przeprowadzimy dalej analizę korespondencji dla wszystkich par kolumn.
+
+```{r przetwarzanie danych o hobby}
+suppressWarnings(library(gtools))
+
+column_combinations <- combinations(ncol(hobbies_reading), 2, colnames(hobbies_reading))
+
+hobbies_pairs <- list()
+dane_pairs <- list()
+labels_pairs <- list()
+
+for (i in 1:nrow(column_combinations)) {
+  hobbies_pairs[[i]] <- hobbies_reading[, column_combinations[i, ]]
+  dane_pairs[[i]] <- table(hobbies_pairs[[i]])
+  labels_pairs[[i]] <- c(column_combinations[i, 1], column_combinations[i, 2])
+}
+summary(hobbies_pairs[[1]])
+```
+
+Skłonność do grupowania poszczególnych par danych zilustrujemy w oparciu o mapy ciepła:
+
+```{r mapy ciepła dla danych o hobby}
+for (i in 1:length(hobbies_pairs)) {
+  cat("Para kolumn", labels_pairs[[i]][1], "&", labels_pairs[[i]][2], ":")
+  heatmap(dane_pairs[[i]], scale = "none", cexRow = 0.9, cexCol = 0.9)
+
+
+  heatmap(dane_pairs[[i]], scale="row", cexRow = 0.9, cexCol = 0.9)
+
+
+  heatmap(dane_pairs[[i]], scale="col", cexRow = 0.9, cexCol = 0.9)
+}
+```
+
+Dla każdej z par możemy utworzyć własną mapę percepcji:
+
+```{r wykres ca danych o hobby}
+xlims <- list(c(-2, 1.3), c(-1.1, 1.1), c(-1.6, 2))
+ylims <- list(c(-1.5, 1.2), c(-1.6, 1.9), c(0.1, 1.7))
+for (i in 1:length(hobbies_pairs)) {
+  cat("Para kolumn", labels_pairs[[i]][1], "&", labels_pairs[[i]][2], ":\n")
+  n <- sum(dane_pairs[[i]])
+  P <- dane_pairs[[i]]/n
+  masa_w <- rowSums(P)
+  masa_k <- colSums(P)
+  teor <- outer(masa_w, masa_k, "*")
+  E <- (P-teor)/teor^(1/2)
+  chi_squared_stat <- n * sum(E*E)
+  df <- (nrow(dane_pairs[[i]]) - 1) * (ncol(dane_pairs[[i]]) - 1)
+  p_value <- 1 - pchisq(chi_squared_stat, df)
+  cat("p-value testu na niezależność", p_value)
+  S <- svd(E)
+  X <- diag(1/sqrt(masa_w)) %*% S$u
+  Y <- diag(1/sqrt(masa_k)) %*% S$v
+  plot(rbind(X[,1:2], Y[,1:2]), col = "white", xlab = "", ylab = "", main = "", xlim = xlims[[i]], ylim = ylims[[i]])
+  text(X[,1:2], levels(hobbies_reading[[labels_pairs[[i]][1]]]), col = "blue")
+  text(Y[,1:2], levels(hobbies_reading[[labels_pairs[[i]][2]]]), col = "red")
+}
+```
+
+Ponieważ p wartość testu $\chi^2$ niezależności wynosi 0.38 na żadnym sensownym poziomie istotności nie mamy podstaw do odrzucenia hipotezy o niezależności wieku od płci pośród osób czytających (można też podejrzewać brak silnej zależności na podstawie mapy percepcji. Na podstawie map percepcji dla pozostałych kolumn o p wartościach testu $\chi^2$ niezależności bliskich zeru możemy wywnioskować, że osoby, których hobby jest czytanie książek są częściej jednoczesnie w wieku od 65 do 75 lat i w kategorii "unskilled worker" niż niezależnie. Podobnie osoby czytające częściej są jednoczesnie w wieku 45 do 55 lat na stanowisku "Foreman". Ponadto osoby czytające są częściej jednocześnie kobietami i zwykłymi pracownikami oraz mężczyznami na stanowiskach związanych z zarządem.
