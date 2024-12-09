@@ -170,8 +170,8 @@ for (i in 1:length(hobbies_pairs)) {
 Dla każdej z par możemy utworzyć własną mapę percepcji:
 
 ```{r wykres ca danych o hobby}
-xlims <- list(c(-2, 1.3), c(-1.1, 1.1), c(-1.6, 2))
-ylims <- list(c(-1.5, 1.2), c(-1.6, 1.9), c(0.1, 1.7))
+xlims <- list(c(-2.1, 2.3), c(-1.1, 3), c(-1.5, 1.8))
+ylims <- list(c(-1.4, 1.1), c(-2.3, 4), c(-0.1, 1.7))
 for (i in 1:length(hobbies_pairs)) {
   cat("Para kolumn", labels_pairs[[i]][1], "&", labels_pairs[[i]][2], ":\n")
   n <- sum(dane_pairs[[i]])
@@ -193,4 +193,4 @@ for (i in 1:length(hobbies_pairs)) {
 }
 ```
 
-Ponieważ p wartość testu $\chi^2$ niezależności wynosi 0.38 na żadnym sensownym poziomie istotności nie mamy podstaw do odrzucenia hipotezy o niezależności wieku od płci pośród osób czytających (można też podejrzewać brak silnej zależności na podstawie mapy percepcji. Na podstawie map percepcji dla pozostałych kolumn o p wartościach testu $\chi^2$ niezależności bliskich zeru możemy wywnioskować, że osoby, których hobby jest czytanie książek są częściej jednoczesnie w wieku od 65 do 75 lat i w kategorii "unskilled worker" niż niezależnie. Podobnie osoby czytające częściej są jednoczesnie w wieku 45 do 55 lat na stanowisku "Foreman". Ponadto osoby czytające są częściej jednocześnie kobietami i zwykłymi pracownikami oraz mężczyznami na stanowiskach związanych z zarządem.
+Ponieważ p wartość testu $\chi^2$ niezależności wynosi 0.38 na żadnym sensownym poziomie istotności nie mamy podstaw do odrzucenia hipotezy o niezależności wieku od płci pośród osób czytających (można też podejrzewać brak silnej zależności na podstawie mapy percepcji. Na podstawie map percepcji dla pozostałych kolumn o p wartościach testu $\chi^2$ niezależności bliskich zeru możemy wywnioskować, że osoby, których hobby jest czytanie książek są częściej jednoczesnie w wieku od 65 do 75 lat i w kategorii "unskilled worker" niż niezależnie (można przypuszczać, że osoby na emeryturze kategoryzowane były jako unkilled worker). Analogicznie częściej niż niezależnie osoby w wieku od 15 do 25 lat należały do kategorii other (zapewne, gdyż osoby niepełnoletnie i młodzi dorośli nie mieli jeszcze żadnej pracy). Dalej wnioskować można, iż osoby czytające częściej są jednoczesnie w wieku 45 do 55 lat na stanowisku "Foreman". Ponadto osoby czytające są częściej jednocześnie kobietami i zwykłymi pracownikami oraz mężczyznami na stanowiskach związanych z zarządem.
