@@ -1,0 +1,73 @@
+---
+title: "Analiza dyskryminacyjna"
+author: "Adam Michalski"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Zadanie 1
+Na początek wczytujemy dane:
+
+```{r wczytanie danych o sklepach}
+suppressWarnings(library(readr))
+shops <- read_csv2("Sklepy4.csv", locale = locale(encoding = "Windows-1250"), col_types = cols(
+  Siec = col_factor()))
+summary(shops)
+colSums(is.na(shops))
+```
+
+Dzielimy dane na część uczącą i testową (90% danych bierzemy do zbioru treningowego):
+
+```{r podzial na zbior uczacy i testowy}
+set.seed(1)
+train_indices <- sample(1:nrow(shops), size = 0.9 * nrow(shops))
+
+train_data <- shops[train_indices, ]
+test_data <- shops[-train_indices, ]
+length(train_data$Siec)
+```
+
+Przeprowadzamy klasyfikację modelem naiwnego Bayesa w oparciu o zbiór testowy i sprawdzamy dokładność modelu na zbiorze testowym:
+
+```{r klasyfikacja naiwnym Bayesem}
+library(klaR) 
+library(caret)
+naive_bayes_model <- NaiveBayes(Siec ~ Dochody + Wydatek, data = train_data, usekernel = TRUE)
+naive_bayes_prediction <- suppressWarnings(predict(naive_bayes_model, test_data)$class)
+naive_bayes_accuracy <- mean(naive_bayes_prediction == test_data$Siec)
+cat("Naive Bayes Accuracy:", naive_bayes_accuracy, "\n")
+
+confusionMatrix(naive_bayes_prediction, test_data$Siec)
+```
+
+Dokładność modelu jest dość niska. Porównamy go więc z modelem lasu losowego:
+
+```{r klasyfikacja lasem losowym}
+library(randomForest)
+
+random_forest_model <- randomForest(Siec ~ Dochody + Wydatek, data = train_data)
+
+random_forest_prediction <- predict(random_forest_model, test_data)
+random_forest_accuracy <- mean(random_forest_prediction == test_data$Siec)
+cat("Random Forest Accuracy:", random_forest_accuracy, "\n")
+confusionMatrix(random_forest_prediction, test_data$Siec)
+```
+
+Prawdopodobnie oba modele nie radzą sobie za dobrze ze względu na dość małą ilość danych (w poszczególnych sieciach mamy tylko od 70 do 150 danych klientów). Sprawdźmy teraz założenie o warunkowej niezależności zmiennych objaśniających:
+
+```{r}
+siec_values <- unique(train_data$Siec)
+for (siec in siec_values){
+  data_test <- subset(train_data, Siec == siec, select = -c(Siec))  
+  test_value <- chisq.test(x=data_test, simulate.p.value = TRUE)
+  cat("Wynik testu dla danych z sieci", siec, "\n")
+  print(test_value)
+}
+```
+
+Na podstawie wyników testów w ramach każdej z wartości zmiennej objaśnianej Siec odrzucamy hipotezę o niezależności zmiennych objaśniających, zatem założenia naiwnego Bayesa okazuje się być błędne. Model radzi sobie jednak tylko nieco gorzej niż las losowy nawet bez spełnienia teoretycznych założeń.
+
+
