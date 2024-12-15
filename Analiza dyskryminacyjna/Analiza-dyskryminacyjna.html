@@ -355,6 +355,9 @@ display: none;
 </div>
 
 
+<div id="zadanie-1" class="section level1">
+<h1>Zadanie 1</h1>
+<p>Na początek wczytujemy dane:</p>
 <pre class="r"><code>suppressWarnings(library(readr))
 shops &lt;- read_csv2(&quot;Sklepy4.csv&quot;, locale = locale(encoding = &quot;Windows-1250&quot;), col_types = cols(
   Siec = col_factor()))</code></pre>
@@ -370,55 +373,67 @@ shops &lt;- read_csv2(&quot;Sklepy4.csv&quot;, locale = locale(encoding = &quot;
 <pre class="r"><code>colSums(is.na(shops))</code></pre>
 <pre><code>## Dochody Wydatek    Siec 
 ##       0       0       0</code></pre>
-<pre class="r"><code>set.seed(1)
-train_indices &lt;- sample(1:nrow(shops), size = 0.9 * nrow(shops))
-
-train_data &lt;- shops[train_indices, ]
-test_data &lt;- shops[-train_indices, ]
-length(train_data$Siec)</code></pre>
-<pre><code>## [1] 423</code></pre>
-<pre class="r"><code>library(klaR) </code></pre>
-<pre><code>## Ładowanie wymaganego pakietu: MASS</code></pre>
+<p>Dzielimy dane na część uczącą i testową (90% danych bierzemy do
+zbioru treningowego):</p>
 <pre class="r"><code>library(caret)</code></pre>
 <pre><code>## Ładowanie wymaganego pakietu: ggplot2</code></pre>
 <pre><code>## Ładowanie wymaganego pakietu: lattice</code></pre>
-<pre class="r"><code>naive_bayes &lt;- NaiveBayes(Siec ~ Dochody + Wydatek, data = train_data, usekernel = TRUE)
-naive_bayes_prediction &lt;- suppressWarnings(predict(naive_bayes, test_data)$class)
+<pre class="r"><code>set.seed(1)
+train_indices &lt;- createDataPartition(shops$Siec, p = 0.9, list = FALSE)
+
+train_data &lt;- shops[train_indices, ]
+test_data &lt;- shops[-train_indices, ]
+
+cat(&quot;Class distribution in testing set:\n&quot;)</code></pre>
+<pre><code>## Class distribution in testing set:</code></pre>
+<pre class="r"><code>print(table(test_data$Siec))</code></pre>
+<pre><code>## 
+##  A  B  C  D 
+## 14  7 14 10</code></pre>
+<p>Przeprowadzamy klasyfikację modelem naiwnego Bayesa w oparciu o zbiór
+testowy i sprawdzamy dokładność modelu na zbiorze testowym:</p>
+<pre class="r"><code>library(klaR) </code></pre>
+<pre><code>## Ładowanie wymaganego pakietu: MASS</code></pre>
+<pre class="r"><code>library(caret)
+naive_bayes_model &lt;- NaiveBayes(Siec ~ Dochody + Wydatek, data = train_data, usekernel = TRUE)
+naive_bayes_prediction &lt;- suppressWarnings(predict(naive_bayes_model, test_data)$class)
 naive_bayes_accuracy &lt;- mean(naive_bayes_prediction == test_data$Siec)
 cat(&quot;Naive Bayes Accuracy:&quot;, naive_bayes_accuracy, &quot;\n&quot;)</code></pre>
-<pre><code>## Naive Bayes Accuracy: 0.4791667</code></pre>
+<pre><code>## Naive Bayes Accuracy: 0.5111111</code></pre>
 <pre class="r"><code>confusionMatrix(naive_bayes_prediction, test_data$Siec)</code></pre>
 <pre><code>## Confusion Matrix and Statistics
 ## 
 ##           Reference
 ## Prediction A B C D
-##          A 6 1 8 0
-##          B 2 3 1 1
-##          C 6 2 5 1
-##          D 0 1 2 9
+##          A 8 1 8 1
+##          B 0 2 0 1
+##          C 6 3 5 0
+##          D 0 1 1 8
 ## 
 ## Overall Statistics
-##                                           
-##                Accuracy : 0.4792          
-##                  95% CI : (0.3329, 0.6281)
-##     No Information Rate : 0.3333          
-##     P-Value [Acc &gt; NIR] : 0.02542         
-##                                           
-##                   Kappa : 0.2895          
-##                                           
-##  Mcnemar&#39;s Test P-Value : NA              
+##                                          
+##                Accuracy : 0.5111         
+##                  95% CI : (0.3577, 0.663)
+##     No Information Rate : 0.3111         
+##     P-Value [Acc &gt; NIR] : 0.004058       
+##                                          
+##                   Kappa : 0.3201         
+##                                          
+##  Mcnemar&#39;s Test P-Value : 0.391957       
 ## 
 ## Statistics by Class:
 ## 
 ##                      Class: A Class: B Class: C Class: D
-## Sensitivity            0.4286   0.4286   0.3125   0.8182
-## Specificity            0.7353   0.9024   0.7188   0.9189
-## Pos Pred Value         0.4000   0.4286   0.3571   0.7500
-## Neg Pred Value         0.7576   0.9024   0.6765   0.9444
-## Prevalence             0.2917   0.1458   0.3333   0.2292
-## Detection Rate         0.1250   0.0625   0.1042   0.1875
-## Detection Prevalence   0.3125   0.1458   0.2917   0.2500
-## Balanced Accuracy      0.5819   0.6655   0.5156   0.8686</code></pre>
+## Sensitivity            0.5714  0.28571   0.3571   0.8000
+## Specificity            0.6774  0.97368   0.7097   0.9429
+## Pos Pred Value         0.4444  0.66667   0.3571   0.8000
+## Neg Pred Value         0.7778  0.88095   0.7097   0.9429
+## Prevalence             0.3111  0.15556   0.3111   0.2222
+## Detection Rate         0.1778  0.04444   0.1111   0.1778
+## Detection Prevalence   0.4000  0.06667   0.3111   0.2222
+## Balanced Accuracy      0.6244  0.62970   0.5334   0.8714</code></pre>
+<p>Dokładność modelu jest dość niska, ale lepsza od losowego wyboru
+sieci. Porównamy go więc z modelem lasu losowego:</p>
 <pre class="r"><code>library(randomForest)</code></pre>
 <pre><code>## randomForest 4.7-1.2</code></pre>
 <pre><code>## Type rfNews() to see new features/changes/bug fixes.</code></pre>
@@ -428,42 +443,196 @@ cat(&quot;Naive Bayes Accuracy:&quot;, naive_bayes_accuracy, &quot;\n&quot;)</co
 ## 
 ##     margin</code></pre>
 <pre class="r"><code>random_forest_model &lt;- randomForest(Siec ~ Dochody + Wydatek, data = train_data)
+
 random_forest_prediction &lt;- predict(random_forest_model, test_data)
 random_forest_accuracy &lt;- mean(random_forest_prediction == test_data$Siec)
 cat(&quot;Random Forest Accuracy:&quot;, random_forest_accuracy, &quot;\n&quot;)</code></pre>
-<pre><code>## Random Forest Accuracy: 0.5416667</code></pre>
+<pre><code>## Random Forest Accuracy: 0.4</code></pre>
 <pre class="r"><code>confusionMatrix(random_forest_prediction, test_data$Siec)</code></pre>
 <pre><code>## Confusion Matrix and Statistics
 ## 
 ##           Reference
-## Prediction  A  B  C  D
-##          A 10  2 11  0
-##          B  1  4  0  1
-##          C  2  1  3  1
-##          D  1  0  2  9
+## Prediction A B C D
+##          A 4 1 9 1
+##          B 4 2 1 0
+##          C 6 3 3 0
+##          D 0 1 1 9
 ## 
 ## Overall Statistics
-##                                           
-##                Accuracy : 0.5417          
-##                  95% CI : (0.3917, 0.6863)
-##     No Information Rate : 0.3333          
-##     P-Value [Acc &gt; NIR] : 0.002356        
-##                                           
-##                   Kappa : 0.3774          
-##                                           
-##  Mcnemar&#39;s Test P-Value : 0.129038        
+##                                          
+##                Accuracy : 0.4            
+##                  95% CI : (0.257, 0.5567)
+##     No Information Rate : 0.3111         
+##     P-Value [Acc &gt; NIR] : 0.1307         
+##                                          
+##                   Kappa : 0.1835         
+##                                          
+##  Mcnemar&#39;s Test P-Value : 0.3799         
 ## 
 ## Statistics by Class:
 ## 
 ##                      Class: A Class: B Class: C Class: D
-## Sensitivity            0.7143  0.57143   0.1875   0.8182
-## Specificity            0.6176  0.95122   0.8750   0.9189
-## Pos Pred Value         0.4348  0.66667   0.4286   0.7500
-## Neg Pred Value         0.8400  0.92857   0.6829   0.9444
-## Prevalence             0.2917  0.14583   0.3333   0.2292
-## Detection Rate         0.2083  0.08333   0.0625   0.1875
-## Detection Prevalence   0.4792  0.12500   0.1458   0.2500
-## Balanced Accuracy      0.6660  0.76132   0.5312   0.8686</code></pre>
+## Sensitivity           0.28571  0.28571  0.21429   0.9000
+## Specificity           0.64516  0.86842  0.70968   0.9429
+## Pos Pred Value        0.26667  0.28571  0.25000   0.8182
+## Neg Pred Value        0.66667  0.86842  0.66667   0.9706
+## Prevalence            0.31111  0.15556  0.31111   0.2222
+## Detection Rate        0.08889  0.04444  0.06667   0.2000
+## Detection Prevalence  0.33333  0.15556  0.26667   0.2444
+## Balanced Accuracy     0.46544  0.57707  0.46198   0.9214</code></pre>
+<p>Prawdopodobnie oba modele nie radzą sobie za dobrze ze względu na
+dość małą ilość danych (w poszczególnych sieciach mamy tylko od 70 do
+150 danych klientów). Sprawdźmy teraz założenie o warunkowej
+niezależności zmiennych objaśniających:</p>
+<pre class="r"><code>siec_values &lt;- unique(train_data$Siec)
+for (siec in siec_values){
+  data_test &lt;- subset(train_data, Siec == siec, select = -c(Siec))  
+  test_value &lt;- chisq.test(x=data_test, simulate.p.value = TRUE)
+  cat(&quot;Result for data from Class&quot;, siec, &quot;\n&quot;)
+  print(test_value)
+}</code></pre>
+<pre><code>## Result for data from Class A 
+## 
+##  Pearson&#39;s Chi-squared test with simulated p-value (based on 2000
+##  replicates)
+## 
+## data:  data_test
+## X-squared = 98205, df = NA, p-value = 0.0004998
+## 
+## Result for data from Class B 
+## 
+##  Pearson&#39;s Chi-squared test with simulated p-value (based on 2000
+##  replicates)
+## 
+## data:  data_test
+## X-squared = 12767, df = NA, p-value = 0.0004998
+## 
+## Result for data from Class C 
+## 
+##  Pearson&#39;s Chi-squared test with simulated p-value (based on 2000
+##  replicates)
+## 
+## data:  data_test
+## X-squared = 79560, df = NA, p-value = 0.0004998
+## 
+## Result for data from Class D 
+## 
+##  Pearson&#39;s Chi-squared test with simulated p-value (based on 2000
+##  replicates)
+## 
+## data:  data_test
+## X-squared = 31932, df = NA, p-value = 0.0004998</code></pre>
+<p>Na podstawie wyników testów w ramach każdej z wartości zmiennej
+objaśnianej Siec odrzucamy hipotezę o niezależności zmiennych
+objaśniających, zatem założenia naiwnego Bayesa okazuje się być błędne.
+Model radzi sobie jednak nawet lepiej niż las losowy bez spełnienia
+teoretycznych założeń (przy braku balansowania wartości Sieci w podziale
+model lasów losowych ma nieznacznie większą dokładność).</p>
+</div>
+<div id="zadanie-2" class="section level1">
+<h1>Zadanie 2</h1>
+<p>Ponownie zaczynamy od wczytania danych:</p>
+<pre class="r"><code>suppressWarnings(library(readr))
+iris2 &lt;- read_csv2(&quot;irysy2.csv&quot;, locale = locale(encoding = &quot;Windows-1250&quot;),
+                   col_types = cols(Colour = col_factor(),
+                                    Species = col_factor()))</code></pre>
+<pre><code>## ℹ Using &quot;&#39;,&#39;&quot; as decimal and &quot;&#39;.&#39;&quot; as grouping mark. Use `read_delim()` for more control.</code></pre>
+<pre class="r"><code>iris2</code></pre>
+<pre><code>## # A tibble: 150 × 6
+##    Sepal.Length Sepal.Width Petal.Length Petal.Width Colour Species
+##           &lt;dbl&gt;       &lt;dbl&gt;        &lt;dbl&gt;       &lt;dbl&gt; &lt;fct&gt;  &lt;fct&gt;  
+##  1          5.1         3.5          1.4         0.2 violet setosa 
+##  2          4.9         3            1.4         0.2 blue   setosa 
+##  3          4.7         3.2          1.3         0.2 blue   setosa 
+##  4          4.6         3.1          1.5         0.2 white  setosa 
+##  5          5           3.6          1.4         0.2 yellow setosa 
+##  6          5.4         3.9          1.7         0.4 blue   setosa 
+##  7          4.6         3.4          1.4         0.3 blue   setosa 
+##  8          5           3.4          1.5         0.2 yellow setosa 
+##  9          4.4         2.9          1.4         0.2 white  setosa 
+## 10          4.9         3.1          1.5         0.1 blue   setosa 
+## # ℹ 140 more rows</code></pre>
+<p>Dzielimy dane na część uczącą i testową (90% danych bierzemy do
+zbioru treningowego):</p>
+<pre class="r"><code>library(caret)
+
+set.seed(1)
+train_indices &lt;- createDataPartition(iris2$Species, p = 0.9, list = FALSE)
+
+train_data &lt;- iris2[train_indices, ]
+test_data &lt;- iris2[-train_indices, ]
+
+cat(&quot;Class distribution in testing set:\n&quot;)</code></pre>
+<pre><code>## Class distribution in testing set:</code></pre>
+<pre class="r"><code>print(table(test_data$Species))</code></pre>
+<pre><code>## 
+##     setosa versicolor  virginica 
+##          5          5          5</code></pre>
+<p>Tworzymy model zespołowy złożony z QDA na danych liczbowych oraz
+naiwnego Bayesa dla kategorycznej zmiennej Colour:</p>
+<pre class="r"><code>library(MASS)
+library(klaR)
+library(caret)
+QDA_data &lt;- subset(train_data, select = -c(Colour))
+NB_data &lt;- subset(train_data, select = c(Colour))
+
+QDA_model &lt;- qda(Species ~ ., data = QDA_data)
+QDA_probs &lt;- predict(QDA_model, test_data[, colnames(QDA_data)])$posterior
+NB_model &lt;- NaiveBayes(Species ~ Colour, data = train_data, usekernel = TRUE)
+NB_probs &lt;- predict(NB_model, test_data[, &quot;Colour&quot;])$posterior
+
+model_probs &lt;- QDA_probs * NB_probs
+model_prediction &lt;- colnames(model_probs)[max.col(model_probs)]
+model_prediction &lt;- factor(model_prediction, levels = levels(test_data$Species))
+model_accuracy &lt;- mean(model_prediction == test_data$Species)
+cat(&quot;Final model Accuracy:&quot;, model_accuracy, &quot;\n&quot;)</code></pre>
+<pre><code>## Final model Accuracy: 0.9333333</code></pre>
+<pre class="r"><code>model_prediction</code></pre>
+<pre><code>##  [1] setosa     setosa     setosa     setosa     setosa     versicolor
+##  [7] versicolor virginica  versicolor versicolor virginica  virginica 
+## [13] virginica  virginica  virginica 
+## Levels: setosa versicolor virginica</code></pre>
+<pre class="r"><code>test_data$Species</code></pre>
+<pre><code>##  [1] setosa     setosa     setosa     setosa     setosa     versicolor
+##  [7] versicolor versicolor versicolor versicolor virginica  virginica 
+## [13] virginica  virginica  virginica 
+## Levels: setosa versicolor virginica</code></pre>
+<pre class="r"><code>confusionMatrix(model_prediction, test_data$Species)</code></pre>
+<pre><code>## Confusion Matrix and Statistics
+## 
+##             Reference
+## Prediction   setosa versicolor virginica
+##   setosa          5          0         0
+##   versicolor      0          4         0
+##   virginica       0          1         5
+## 
+## Overall Statistics
+##                                           
+##                Accuracy : 0.9333          
+##                  95% CI : (0.6805, 0.9983)
+##     No Information Rate : 0.3333          
+##     P-Value [Acc &gt; NIR] : 2.16e-06        
+##                                           
+##                   Kappa : 0.9             
+##                                           
+##  Mcnemar&#39;s Test P-Value : NA              
+## 
+## Statistics by Class:
+## 
+##                      Class: setosa Class: versicolor Class: virginica
+## Sensitivity                 1.0000            0.8000           1.0000
+## Specificity                 1.0000            1.0000           0.9000
+## Pos Pred Value              1.0000            1.0000           0.8333
+## Neg Pred Value              1.0000            0.9091           1.0000
+## Prevalence                  0.3333            0.3333           0.3333
+## Detection Rate              0.3333            0.2667           0.3333
+## Detection Prevalence        0.3333            0.2667           0.4000
+## Balanced Accuracy           1.0000            0.9000           0.9500</code></pre>
+<p>Ostateczny model myli się tylko raz błędnie diagnozując irysa gatunku
+Versicolor jako Virginica. Ustawiając podział na 95% otrzymujemy idealny
+wynik na zbiorze testowym, ale zbiór ten ma wtedy zaledwie 6
+elementów.</p>
+</div>
 
 
 

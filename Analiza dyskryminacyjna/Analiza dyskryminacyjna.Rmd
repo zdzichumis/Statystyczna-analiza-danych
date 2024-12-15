@@ -21,13 +21,17 @@ colSums(is.na(shops))
 
 Dzielimy dane na część uczącą i testową (90% danych bierzemy do zbioru treningowego):
 
-```{r podzial na zbior uczacy i testowy}
+```{r podzial danych o sklepach na zbior uczacy i testowy}
+library(caret)
+
 set.seed(1)
-train_indices <- sample(1:nrow(shops), size = 0.9 * nrow(shops))
+train_indices <- createDataPartition(shops$Siec, p = 0.9, list = FALSE)
 
 train_data <- shops[train_indices, ]
 test_data <- shops[-train_indices, ]
-length(train_data$Siec)
+
+cat("Class distribution in testing set:\n")
+print(table(test_data$Siec))
 ```
 
 Przeprowadzamy klasyfikację modelem naiwnego Bayesa w oparciu o zbiór testowy i sprawdzamy dokładność modelu na zbiorze testowym:
@@ -43,7 +47,7 @@ cat("Naive Bayes Accuracy:", naive_bayes_accuracy, "\n")
 confusionMatrix(naive_bayes_prediction, test_data$Siec)
 ```
 
-Dokładność modelu jest dość niska. Porównamy go więc z modelem lasu losowego:
+Dokładność modelu jest dość niska, ale lepsza od losowego wyboru sieci. Porównamy go więc z modelem lasu losowego:
 
 ```{r klasyfikacja lasem losowym}
 library(randomForest)
@@ -53,6 +57,7 @@ random_forest_model <- randomForest(Siec ~ Dochody + Wydatek, data = train_data)
 random_forest_prediction <- predict(random_forest_model, test_data)
 random_forest_accuracy <- mean(random_forest_prediction == test_data$Siec)
 cat("Random Forest Accuracy:", random_forest_accuracy, "\n")
+
 confusionMatrix(random_forest_prediction, test_data$Siec)
 ```
 
@@ -63,11 +68,60 @@ siec_values <- unique(train_data$Siec)
 for (siec in siec_values){
   data_test <- subset(train_data, Siec == siec, select = -c(Siec))  
   test_value <- chisq.test(x=data_test, simulate.p.value = TRUE)
-  cat("Wynik testu dla danych z sieci", siec, "\n")
+  cat("Result for data from Class", siec, "\n")
   print(test_value)
 }
 ```
 
-Na podstawie wyników testów w ramach każdej z wartości zmiennej objaśnianej Siec odrzucamy hipotezę o niezależności zmiennych objaśniających, zatem założenia naiwnego Bayesa okazuje się być błędne. Model radzi sobie jednak tylko nieco gorzej niż las losowy nawet bez spełnienia teoretycznych założeń.
+Na podstawie wyników testów w ramach każdej z wartości zmiennej objaśnianej Siec odrzucamy hipotezę o niezależności zmiennych objaśniających, zatem założenia naiwnego Bayesa okazuje się być błędne. Model radzi sobie jednak nawet lepiej niż las losowy bez spełnienia teoretycznych założeń (przy braku balansowania wartości Sieci w podziale model lasów losowych ma nieznacznie większą dokładność).
 
+# Zadanie 2
+Ponownie zaczynamy od wczytania danych:
 
+```{r}
+suppressWarnings(library(readr))
+iris2 <- read_csv2("irysy2.csv", locale = locale(encoding = "Windows-1250"),
+                   col_types = cols(Colour = col_factor(),
+                                    Species = col_factor()))
+iris2
+```
+
+Dzielimy dane na część uczącą i testową (90% danych bierzemy do zbioru treningowego):
+
+```{r podzial danych o irysach na zbior uczacy i testowy}
+library(caret)
+
+set.seed(1)
+train_indices <- createDataPartition(iris2$Species, p = 0.9, list = FALSE)
+
+train_data <- iris2[train_indices, ]
+test_data <- iris2[-train_indices, ]
+
+cat("Class distribution in testing set:\n")
+print(table(test_data$Species))
+```
+Tworzymy model zespołowy złożony z QDA na danych liczbowych oraz naiwnego Bayesa dla kategorycznej zmiennej Colour:
+
+```{r klasyfikacja przy pomocy QDA i naiwnego Bayesa}
+library(MASS)
+library(klaR)
+library(caret)
+QDA_data <- subset(train_data, select = -c(Colour))
+NB_data <- subset(train_data, select = c(Colour))
+
+QDA_model <- qda(Species ~ ., data = QDA_data)
+QDA_probs <- predict(QDA_model, test_data[, colnames(QDA_data)])$posterior
+NB_model <- NaiveBayes(Species ~ Colour, data = train_data, usekernel = TRUE)
+NB_probs <- predict(NB_model, test_data[, "Colour"])$posterior
+
+model_probs <- QDA_probs * NB_probs
+model_prediction <- colnames(model_probs)[max.col(model_probs)]
+model_prediction <- factor(model_prediction, levels = levels(test_data$Species))
+model_accuracy <- mean(model_prediction == test_data$Species)
+cat("Final model Accuracy:", model_accuracy, "\n")
+model_prediction
+test_data$Species
+confusionMatrix(model_prediction, test_data$Species)
+```
+
+Ostateczny model myli się tylko raz błędnie diagnozując irysa gatunku Versicolor jako Virginica. Ustawiając podział na 95% otrzymujemy idealny wynik na zbiorze testowym, ale zbiór ten ma wtedy zaledwie 6 elementów.
