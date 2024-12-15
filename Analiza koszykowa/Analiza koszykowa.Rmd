@@ -1,0 +1,55 @@
+---
+title: "Analiza koszykowa"
+author: "Adam Michalski"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r wczytanie bibliotek oraz danych}
+suppressWarnings(library(readxl))
+suppressWarnings(library(arules))
+suppressWarnings(library(arulesViz))
+suppressWarnings(library(RColorBrewer))
+
+retail = read_excel("Online Retail.xlsx")
+transactions <- as(split(retail$Description, retail$InvoiceNo), "transactions")
+summary(transactions)
+inspect(transactions[1:5])
+par(mar = c(4, 6.5, 4, 0))
+itemFrequencyPlot(transactions, topN = 10,
+                  type = "relative", col = brewer.pal(8, "Pastel2"),
+                  main = "Item Frequency Plot",
+                  cex.names = 0.7,
+                  las = 2)
+```
+
+Z wykresu częstości możemy odczytać 10 najczęściej kupowanych produktów. Poszczególne z nich występują w do 8% wszystkich transakcji.
+
+
+```{r szukanie ogolnych regul}
+general_rules <- apriori(transactions, parameter = list(supp = 0.01, conf = 0.75))
+length(general_rules)
+general_rules_by_conf <- sort(general_rules, by = "confidence", decreasing = TRUE)
+inspect(general_rules_by_conf[1:10])
+plot(general_rules_by_conf, method = "graph", engine = "htmlwidget")
+```
+
+Na podstawie interaktywnego widgetu możemy zauważyć chociażby wiele chmur reguł dotyczących produktów zawierających w nazwie słowo jumbo, produktów związanych z torbami, spodków i kubków do herbaty, asortymentu świątecznego takiego jak gwiazdki na choinkę, kolorowych budzików oraz produktów stanowiących części zabawkowego domku Poppy.
+
+```{r szukanie regul wynikajacych z najczestszego produktu}
+"WHITE HANGING HEART T-LIGHT HOLDER" %in% itemLabels(transactions)
+T_LIGHT_HOLDER_rules <- apriori(transactions, parameter = list(supp = 0.01, conf = 0.1),
+                                appearance = list(lhs="WHITE HANGING HEART T-LIGHT HOLDER", default="rhs"))
+length(T_LIGHT_HOLDER_rules)
+T_LIGHT_HOLDER_rules_by_conf <- sort(T_LIGHT_HOLDER_rules, by = "confidence", decreasing = TRUE)
+inspect(T_LIGHT_HOLDER_rules_by_conf[1:10])
+T_LIGHT_HOLDER_rules_by_lift <- sort(T_LIGHT_HOLDER_rules, by = "lift", decreasing = TRUE)
+inspect(T_LIGHT_HOLDER_rules_by_lift[1:10])
+plot(T_LIGHT_HOLDER_rules_by_conf, method = "graph", engine = "htmlwidget")
+```
+
+Reguły wynikające z zakupu najczęstszego produktu mają niski confidence (poniżej 0.22), ale mają niekiedy lift powyżej 7, co wskazuje na silną korelację między produktami połączonymi regułą. Przykładowe produkty połączone regułą z białymi świecznikami w kształcie serca to inne kolory tego samego produktu (chociażby czerwony), inne produkty w kształcie serca, obrazki z białym wykończeniem i białe obramówki.
+ 
