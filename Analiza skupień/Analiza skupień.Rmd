@@ -1,0 +1,203 @@
+---
+title: "Analiza skupień"
+author: "Adam Michalski"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Zadanie 1
+Na początek wczytujemy dane oraz przygotowujemy kolumny do grupowania:
+
+```{r wczytanie danych o irysach}
+library(datasets)
+data(iris)
+data_clusters <- subset(iris, select = -c(Species))
+summary(data_clusters)
+```
+Wyniki grupowania metodą 3 średnich wyświetlamy poprzez funkcję plot:
+
+```{r klastrowanie 3means}
+set.seed(14)
+iris3means <- kmeans(data_clusters, 3)
+iris$cluster3means <- iris3means$cluster
+
+plot(data_clusters, pch = iris$cluster3means, col = iris$cluster3means)
+points(iris3means$centers, cex=2, pch=19)
+```
+
+Ponieważ z wszystkich wykresów jednocześnie niewiele widać przy użyciu biblioteki ggplot przyglądamy się wybranym 2 kolumnom długości i szerekości płatka w klastrach:
+
+```{r porownanie klastrow 3means z gatunkami}
+library(ggplot2)
+ggplot(iris, aes(x = Sepal.Length, y = Sepal.Width, color = as.factor(Species), shape = as.factor(cluster3means))) +
+  geom_point(size = 3) +
+  ggtitle("Clusters vs. Species") +
+  theme_minimal()
+```
+
+Dodatkowo możemy porównać w postaci macierzy pomyłek otrzymane klastry z gatunkami (jest to wtedy numeryczna weryfikacja metody klastrowania z nadzorem):
+
+```{r macierz pomylek dla 3means}
+library(caret)
+confusion_matrix <- table(Clusters = iris$cluster3means, Species = iris$Species)
+print(confusion_matrix)
+```
+
+Okazuje się, że otrzymane klastry nie pokrywają się z gatunkami irysów. Drugi klaster zdaje się zawierać wszystkie irysy gatunku virginica oraz większość gatunku versicolor, podczas gdy pozostałe klastry dzielą dogłębniej gatunek setosa. Podobne porównanie przeprowadzamy dla algorytmu EM:
+
+```{r klastrowanie EM na 3 klastry}
+library(mclust)
+set.seed(14)
+iris3EM <- Mclust(data_clusters, G = 3)
+iris$cluster3EM <- iris3EM$classification
+plot(iris3EM)
+```
+
+Z pierwszego wykresu możemy odczytać wybrany na podstawie kryterium informacyjnego model. Z wykresów klastry zdają się łudząco przypominać gatunki irysów. Macierz pomyłek wygląda następująco:
+
+```{r macierz pomylek dla EM z 3 klastrami}
+library(caret)
+confusion_matrix <- table(Clusters = iris$cluster3EM, Species = iris$Species)
+print(confusion_matrix)
+```
+
+Otrzymane klastry przy pomocy algorytmu EM zdają się niemalże pokrywać z podziałem na gatunki irysów. Tylko 5 przedstawicieli gatunku versicolor trafiło do klastra z gatunkiem virginica. 
+# Zadanie 2
+Rzućmy teraz okiem na klastry powstałe przy użyciu algorytmu 2 średnich:
+
+```{r klastrowanie 2means}
+set.seed(14)
+iris2means <- kmeans(data_clusters, 2)
+iris$cluster2means <- iris2means$cluster
+
+plot(data_clusters, pch = iris$cluster2means, col = iris$cluster2means)
+points(iris2means$centers, cex=2, pch=19)
+```
+
+Macierz pomyłek względem gatunków:
+
+```{r macierz pomylek dla 2means}
+library(caret)
+confusion_matrix <- table(Clusters = iris$cluster2means, Species = iris$Species)
+print(confusion_matrix)
+```
+
+Na podstawie macierzy pomyłek i wykresów algorytm 2 średnich zdaje się prowadzić do grupowania łączącego gatunki virginica i versicolor.Następnie przyjrzymy się klastrom powstałym przy użyciu algorytmu 4 średnich:
+
+```{r klastrowanie 4means}
+set.seed(14)
+iris4means <- kmeans(data_clusters, 4)
+iris$cluster4means <- iris4means$cluster
+
+plot(data_clusters, pch = iris$cluster4means, col = iris$cluster4means)
+points(iris2means$centers, cex=2, pch=19)
+```
+
+Macierz pomyłek względem gatunków:
+
+```{r macierz pomylek dla 4means}
+library(caret)
+confusion_matrix <- table(Clusters = iris$cluster4means, Species = iris$Species)
+print(confusion_matrix)
+```
+
+Grupowanie to zdaje się rozbijać gatunek setosa na klastry 1 i 3 oraz pozostałe klastry stanowią pewien podział pozostałych gatunków. Zróbmy to samo gla algorytmu EM najpierw dla 2 klastrów:
+
+```{r klastrowanie EM na 2 klastry}
+library(mclust)
+set.seed(14)
+iris2EM <- Mclust(data_clusters, G = 2)
+iris$cluster2EM <- iris2EM$classification
+plot(iris2EM)
+```
+
+Macierz pomyłek:
+
+```{r macierz pomylek dla EM z 2 klastrami}
+library(caret)
+confusion_matrix <- table(Clusters = iris$cluster2EM, Species = iris$Species)
+print(confusion_matrix)
+```
+
+Otrzymane klastry przy pomocy algorytmu EM pokrywają się dokładnie z połączeniem gatunków virginica i versicolor pozostawiając gatunek setosa w osobnym klastrze. Teraz EM z podziałem na 4 klastry:
+
+```{r klastrowanie EM na 4 klastry}
+library(mclust)
+set.seed(14)
+iris4EM <- Mclust(data_clusters, G = 4)
+iris$cluster4EM <- iris4EM$classification
+plot(iris4EM)
+```
+
+Z pierwszego wykresu możemy odczytać wybrany na podstawie kryterium informacyjnego model. Z wykresów klastry zdają się łudząco przypominać gatunki irysów. Macierz pomyłek wygląda następująco:
+
+```{r macierz pomylek dla EM z 4 klastrami}
+library(caret)
+confusion_matrix <- table(Clusters = iris$cluster4EM, Species = iris$Species)
+print(confusion_matrix)
+```
+
+Otrzymane klastry przy pomocy algorytmu EM podobnie jak te algorytmu 4 średnich dzielą gatunek setosa na 2 klastry. Algorytm EM zdaje się jednak być blisko podziału gatunków versicolor i virginica na osobne klastry.
+
+# Zadanie 3
+
+Najpierw wczytujemy początkowe dane bez braków:
+
+```{r wczytanie danych o autach}
+library(PogromcyDanych)
+data(auta2012)
+summary(auta2012)
+chosen_data <- na.omit(auta2012[1:10000, ])
+length(chosen_data$Cena)
+unpure_data <- subset(chosen_data, select = c(KM , Pojemnosc.skokowa, Marka))
+```
+
+Otrzymaliśmy 6979 wierszy. W następnej kolejności usuniemy dane odstające: 
+
+```{r obserwacje odstajace}
+km_quantile <- quantile(unpure_data$KM, 0.98)
+pojemnosc_quantile <- quantile(unpure_data$Pojemnosc.skokowa, 0.98)
+
+pure_data <- unpure_data[unpure_data$KM <= km_quantile & 
+                              unpure_data$Pojemnosc.skokowa <= pojemnosc_quantile, ]
+length(pure_data$KM)
+summary(pure_data)
+data_for_clusters <- subset(pure_data, select = -c(Marka))
+```
+
+Pozostało 6786 wierszy. Przejdźmy do użycia algorytmu EM do stworzenia klastrów:
+
+```{r klastrowanie aut metoda EM}
+num_clusters <- 5
+library(mclust)
+set.seed(14)
+carsEM <- Mclust(data_for_clusters, G=num_clusters)
+pure_data$clusterEM <- carsEM$classification
+```
+
+```{r wykres grupowania}
+cluster_colors <- c("green", "blue", "red", "darkblue", "orange")
+cluster_symbols <- c(2, 1, 15, 3, 18)  # Triangle, circle, square, plus, rhombus
+
+plot(carsEM, what = "classification")
+
+legend_labels <- paste("Cluster", sort(unique(pure_data$clusterEM)))
+legend("topright", legend = legend_labels, pch = cluster_symbols, col = cluster_colors, title = "Clusters")
+
+```
+
+Otrzymane grupowanie dzieli samochody na 5 klastrów.Dwa z klastrów zdają się mieć niemalże stałe pojemności skokowe silnika o dużym zakresie mocy. Pozostałe 2 grupy zdają się wyróżniać jednocześnie małą (bardzo małą) mocą i pojemnością silnika a ostatnia grupa obejmująca większość samochodów zawiera głównie samochody o jednocześnie wysokiej mocy i pojemności silnika oraz pozostałe dane odstające (w tym bardzo małe moce i pojemności silnika). Można różnież odczytać jakiej marki samochody trafiają do poszczególnych klastrów:
+
+```{r macierz pomylek aut metoda EM}
+pure_data$Marka <- as.character(pure_data$Marka)
+most_common_vals <- names(sort(table(pure_data$Marka), decreasing = TRUE))[1:10]
+pure_data$clean_Marka <- ifelse(pure_data$Marka %in% most_common_vals, pure_data$Marka, "Other")
+library(caret)
+confusion_matrix <- table(Cluster = pure_data$clusterEM, Marka = pure_data$clean_Marka)
+print(confusion_matrix)
+```
+
+Z macierzy powyższej widać, że chociażby samochody o rzadszych markach występują najczęściej w grupie 4 oraz w grupie 5 nie pojawiają się Toyoty oraz występują pojedyńcze Peugeoty i Mercedesy. Ze względu na niewielką liczność występowania nawet najczęstszych marek szczegółowe zależności marki od klastra są trduniej dostępne.
