@@ -1,0 +1,158 @@
+---
+title: "Krzywe ROC i modele zespołowe"
+author: "Adam Michalski"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#Zadanie 1
+
+Na początek wczytujemy dane oraz tworzymy ramki danych z kolumną binarną informującą, czy irys jest przedstawicielem konkretnego gatunku:
+
+```{r wczytanie i podzial danych}
+library(datasets)
+data(iris)
+iris$is_Setosa <- ifelse(iris$Species == "setosa", 1, 0)
+iris$is_Versicolor <- ifelse(iris$Species == "versicolor", 1, 0)
+iris$is_Virginica <- ifelse(iris$Species == "virginica", 1, 0)
+
+data_is_Setosa <- subset(iris, select = c(Sepal.Length, Sepal.Width, is_Setosa))
+data_is_Versicolor <- subset(iris, select = c(Sepal.Length, Sepal.Width, is_Versicolor))
+data_is_Virginica <- subset(iris, select = c(Sepal.Length, Sepal.Width, is_Virginica))
+
+summary(data_is_Setosa)
+```
+
+Następnie tworzymy naiwnie modele regresji logistycznej dla każdego ze zbiorów danych:
+
+```{r regresja logistyczna kazdego z gatunkow}
+reg_Setosa <- glm(is_Setosa ~ Sepal.Length + Sepal.Width, data = data_is_Setosa, family = binomial)
+reg_Versicolor <- glm(is_Versicolor ~ Sepal.Length + Sepal.Width, data = data_is_Versicolor, family = binomial)
+reg_Virginica <- glm(is_Virginica ~ Sepal.Length + Sepal.Width, data = data_is_Virginica, family = binomial)
+summary(reg_Setosa)
+summary(reg_Versicolor)
+summary(reg_Virginica)
+```
+
+Niestety model regresji logistycznej dla gatunku Setosa nie jest poprawny (okazuje się, że zmienne objaśniające pozwalają idealnie odseparować, czy dany gatunek to Setosa, czy też nie). Zastosujemy wobec tego dla gatunku Setosa regresję ridge radzącą sobie ze zbyt dobrym dopasowaniem danych.
+
+```{r regularyzowana regresja logistyczna gatunku Setosa}
+library(glmnet)
+
+X_Setosa <- as.matrix(data_is_Setosa[, c("Sepal.Length", "Sepal.Width")])
+y_Setosa <- data_is_Setosa$is_Setosa
+
+# Fit logistic regression with L2 regularization (ridge logistic regression)
+reg_Setosa <- cv.glmnet(X_Setosa, y_Setosa, family = "binomial", alpha = 0)
+
+coef(reg_Setosa, s = "lambda.min")
+```
+
+Ostatecznie łączymy te modele uwzględniając z większą wagą wyśmienity model gatunku Setosa:
+
+```{r model zespolowy regresji logistycznej}
+X_Setosa <- as.matrix(iris[, c("Sepal.Length", "Sepal.Width")])
+iris$prob_Setosa <- predict(reg_Setosa, newx = X_Setosa, type = "response", s = "lambda.min")
+iris$prob_Versicolor <- predict(reg_Versicolor, newdata = iris, type = "response")
+iris$prob_Virginica <- predict(reg_Virginica, newdata = iris, type = "response")
+
+# Combine predictions into final classification
+iris$predicted_species <- apply(iris[, c("prob_Setosa", "prob_Versicolor", "prob_Virginica")], 1, 
+                                function(x) c("setosa", "versicolor", "virginica")[which.max(x)])
+```
+
+Macierz pomyłek utworzonego modelu:
+
+```{r macierz pomylek}
+confusion_matrix <- table(Prediction = iris$predicted_species, Species = iris$Species)
+print(confusion_matrix)
+```
+
+#Zadanie 2
+
+Na początek (jak zawsze) wczytujemy dane:
+
+```{r wczytywanie bibliotek i danych}
+library(MASS)
+library(pROC)
+library(naivebayes)
+set.seed(123)
+
+data(Pima.te)
+data_pima <- subset(Pima.te, select = c(age, npreg, bmi, type))
+summary(data_pima)
+```
+
+Przeprowadzamy podział danych na część uczącą i testową:
+
+```{r podzial danych na czesc uczaca i testowa}
+library(caret)
+
+set.seed(1)
+train_indices <- createDataPartition(data_pima$type, p = 0.7, list = FALSE)
+
+train_data <- data_pima[train_indices, ]
+test_data <- data_pima[-train_indices, ]
+
+cat("Class distribution in testing set:\n")
+print(table(test_data$type))
+```
+
+Tworzymy model regresji logistycznej oraz jego charakterystyki liczbowe:
+
+```{r logistic regression model}
+library(caret)
+threshhold <- 0.5
+logistic_regression_model <- glm(type ~ age + npreg + bmi, data = train_data, family = binomial)
+logistic_regression_probs <- predict(logistic_regression_model, newdata = test_data, type = "response")
+logistic_regression_prediction <- ifelse(logistic_regression_probs > threshhold, "Yes", "No")
+logistic_regression_prediction <- factor(logistic_regression_prediction, levels = levels(test_data$type))
+summary(logistic_regression_model)
+confusionMatrix(logistic_regression_prediction, test_data$type)
+```
+
+Tworzymy model QDA oraz jego charakterystyki liczbowe:
+
+```{r QDA model}
+QDA_model <- qda(type ~ age + npreg + bmi, data = train_data)
+QDA_probs <- predict(QDA_model, newdata = test_data)$posterior[, "Yes"]
+QDA_prediction <- predict(QDA_model, newdata = test_data)$class
+confusionMatrix(QDA_prediction, test_data$type)
+```
+
+Tworzymy model naiwnego Bayesa oraz jego charakterystyki liczbowe:
+
+```{r model Naiwnego Bayesa}
+# Naive Bayes Model
+library(klaR) 
+library(caret)
+naive_bayes_model <- NaiveBayes(type ~ age + npreg + bmi, data = train_data, usekernel = TRUE)
+naive_bayes_probs <- predict(naive_bayes_model, test_data)$posterior[, "Yes"]
+naive_bayes_prediction <- predict(naive_bayes_model, test_data)$class
+confusionMatrix(naive_bayes_prediction, test_data$type)
+```
+
+W oparciu o prawdopodobieństwa poszczególnych modeli tworzymy wykresy krzywych ROC tych modeli oraz wyznaczamy pola pod wykresem krzywych ROC.
+
+```{r wykresy ROC}
+logistic_regresssion_roc <- roc(test_data$type, logistic_regression_probs, levels = c("No", "Yes"))
+QDA_roc <- roc(test_data$type, QDA_probs, levels = c("No", "Yes"))
+naive_bayes_roc <- roc(test_data$type, naive_bayes_probs, levels = c("No", "Yes"))
+
+plot(logistic_regresssion_roc, col = "blue", main = "ROC Curves for Models")
+lines(QDA_roc, col = "red")
+lines(naive_bayes_roc, col = "green")
+legend("bottomright", legend = c("Logistic Regression", "QDA", "Naive Bayes"), 
+       col = c("blue", "red", "green"), lty = 1)
+
+# AUC values
+auc_logistic <- auc(logistic_regresssion_roc)
+auc_qda <- auc(QDA_roc)
+auc_nb <- auc(naive_bayes_roc)
+cat("AUC Values:\n")
+cat("Logistic Regression:", auc_logistic, "\nQDA:", auc_qda, "\nNaive Bayes:", auc_nb, "\n")
+```
+Na podstawie wykresu widać, że model QDA zdaje się gorszy od pozostałych. Na podstawie pola pod wykresem krzywej ROC model naiwnego Bayesa zdaje się być tylko nieco lepszy od regresji logistycznej.
